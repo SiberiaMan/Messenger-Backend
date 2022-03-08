@@ -1,0 +1,42 @@
+version: "2.1"
+
+services:
+  web:
+    environment:
+      - POSTGRES_PWD=pswd
+      - POSTGRES_USER=user
+      - POSTGRES_HOSTS=db
+      - POSTGRES_DB=my_db
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    volumes:
+      - .:/code
+    ports:
+      - "8000:8000"
+    command: sh -c "analyzer-db revision --autogenerate; analyzer-db upgrade head; messenger-api"
+
+  db:
+    image: postgres
+    volumes:
+      - ./data/db:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=my_db
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=pswd
+    ports:
+      - ${POSTGRES_PORT:-5432}:5432    
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5    
+
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+

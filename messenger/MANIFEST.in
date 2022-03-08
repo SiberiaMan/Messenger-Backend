@@ -1,0 +1,3 @@
+include messenger/alembic.ini
+include messenger/alembic/script.py.mako
+include messenger/user_configs.txt

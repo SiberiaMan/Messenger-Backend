@@ -1,0 +1,11 @@
+1 Europe/Moscow
+4 Europe/Moscow
+2 Pacific/Wake
+3 America/New_York
+4 Asia/Vladivostok
+5 Asia/Yakutsk
+6 Asia/Yekaterinburg
+7 Asia/Yerevan
+8 Atlantic/Azores
+9 Atlantic/Bermuda
+10 Atlantic/Canary
