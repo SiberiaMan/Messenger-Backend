@@ -1,0 +1,383 @@
+swagger: '2.0'
+info:
+  version: 1.0.0
+  title: Gentlemen Messenger API
+servers:
+  - url: http://localhost
+paths:
+  /v1/registration:
+    post:
+      description: "зарегистрироваться в приложении"
+      parameters:
+        - in: header
+          name: login
+          required: true
+          schema:
+            type: string
+        - in: header
+          name: password
+          required: true
+          schema:
+            type: string
+      responses:
+        '201':
+          description:
+            'успешная регистрация'
+        '400':
+          description:
+            'не удалось зарегистрироваться'
+        default:
+          $ref: '#/components/responses/DefaultErrorResponse'
+
+  /v1/ping_db:
+    post:
+      description: "проверить состояние базы данных"
+      responses:
+        '200':
+          description:
+            'успешное подключение к базе данных'
+        '503':
+          description:
+            'база данных недоступна'
+
+  /v1/chats:
+    post:
+      description: "создать чат с именем chat_name"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: "object"
+              properties:
+                chat_name:
+                  type: string
+                  maxLength: 255
+                  description: "название для создаваемого чата"
+                  example: "новый чат"
+      responses:
+        '201':
+          $ref: '#/components/responses/ChatCreateResponse'
+        '400':
+          description: |
+            * `bad-parameters` - неправильный формат входных параметров
+        default:
+          $ref: '#/components/responses/DefaultErrorResponse'
+
+  /v1/chats/{chat_id}/users:
+    post:
+      description: "добавить пользователя user_name в чат chat_id"
+      parameters:
+        - in: path
+          required: true
+          name: chat_id
+          schema:
+            type: string
+          description: "id чата, полученное при создании чата"
+          example: "the-chat-id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: "object"
+              properties:
+                user_name:
+                  type: string
+                  maxLength: 255
+                  description: "username пользователя"
+                  example: "Vasya Pupkin"
+      responses:
+        '201':
+          $ref: '#/components/responses/ChatJoinResponse'
+        '400':
+          description: |
+            * `bad-parameters` - неправильный формат входных параметров
+        '404':
+          description: |
+            * `chat-not-found` - указанный чат не существует
+        default:
+          $ref: '#/components/responses/DefaultErrorResponse'
+
+  /v1/chats/{chat_id}/messages:
+    get:
+      description: "получить список сообщений из чата chat_id"
+      parameters:
+        - in: path
+          required: true
+          name: chat_id
+          schema:
+            type: string
+          example: "the-chat-id"
+        - in: query
+          required: true
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 1000
+          description: "не больше стольки сообщений хотим получить в ответе"
+          example: 10
+        - in: query
+          name: from
+          schema:
+            $ref: '#/components/schemas/Cursor'
+          description: "указатель для сервера, обозначающий место, с которого стоит продолжить получение сообщений; если не указан, то сервер должен вернуть limit сообщений, начиная с самого первого сообщения в чате"
+      responses:
+        '200':
+          $ref: '#/components/responses/ChatGetMessagesResponse'
+        '400':
+          description: |
+            * `bad-parameters` - неправильный формат входных параметров
+        '404':
+          description: |
+            * `chat-not-found` - указанный чат не существует
+        default:
+          $ref: '#/components/responses/DefaultErrorResponse'
+    post:
+      description: "отправить в чат chat_id сообщение message"
+      parameters:
+        - in: path
+          required: true
+          name: chat_id
+          schema:
+            type: string
+          example: "the-chat-id"
+        - in: query
+          required: true
+          name: user_id
+          schema:
+            type: string
+          example: "the-user-id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: "object"
+              properties:
+                message:
+                  type: string
+                  description: "текст сообщения"
+                  example: "Hello"
+      responses:
+        '201':
+          $ref: '#/components/responses/ChatSendMessageResponse'
+        '400':
+          description: |
+            * `bad-parameters` - неправильный формат входных параметров
+        '404':
+          description: |
+            * `chat-not-found` - указанный чат не существует
+            * `user-not-found` - в указанном чате нет указанного пользователя
+        default:
+          $ref: '#/components/responses/DefaultErrorResponse'
+
+  /v1/chats/search:
+    post:
+      description: "Запустить процесс поиска по истории сообщений для чатов, в которых есть данный пользователь"
+      parameters:
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: "object"
+              properties:
+                message:
+                  type: string
+                  description: "текст сообщения, который надо найти в истории"
+                  example: "Hello"
+      responses:
+        '201':
+          $ref: '#/components/responses/GetHistoryResponse'
+        '400':
+          description: |
+            * `bad-parameters` - неправильный формат входных параметров
+        '404':
+          description: |            
+            * `user-not-found` - данный пользователь не найден
+
+        default:
+          $ref: '#/components/responses/DefaultErrorResponse'
+
+  /v1/chats/search/status/{task_id}:
+    get:
+      description: "Получить статус таски на обработку"
+      parameters:
+        - in: path
+          required: true
+          name: task_id
+          schema:
+            type: string
+      responses:
+        '200':
+          $ref:  "#/components/responses/GetTaskResponse"
+        '400':
+          description: |
+            * `bad-parameters` - неправильный формат входных параметров
+        '404':
+          description: |            
+            * `task-not-found` - задача на обработку не найдена
+        default:
+          $ref: '#/components/responses/DefaultErrorResponse'
+
+  /v1/chats/search/{task_id}/messages:
+    get:
+      description: "получить список сообщений из чатов"
+      parameters:
+        - in: path
+          required: true
+          name: task_id
+          schema:
+            type: string
+          example: "the-task-id"
+        - in: query
+          required: true
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+          description: "не больше стольки сообщений хотим получить в ответе"
+          example: 10
+        - in: query
+          name: from
+          schema:
+            $ref: '#/components/schemas/Cursor'
+          description: "указатель для сервера, обозначающий место, с которого стоит продолжить получение сообщений; если не указан, то сервер должен вернуть limit сообщений, начиная с самого последнего сообщения в истории"
+      responses:
+        '200':
+          $ref: '#/components/responses/HistoryGetMessagesResponse'
+        '400':
+          description: |
+            * `bad-parameters` - неправильный формат входных параметров
+        '404':
+          description: |
+            * `task-not-found` - указанная задача не существует
+        default:
+          $ref: '#/components/responses/DefaultErrorResponse'
+
+
+components:
+  responses:
+    DefaultErrorResponse:
+      description: 'unexpected server error'
+      content:
+        application/json:
+          schema:
+            required:
+              - message
+            properties:
+              message:
+                type: string
+                description: "error reason"
+
+    ChatCreateResponse:
+      description: 'action was completed successfully'
+      content:
+        application/json:
+          schema:
+            required:
+              - chat_id
+            properties:
+              chat_id:
+                type: string
+                description: "id созданного чата"
+
+    ChatJoinResponse:
+      description: 'action was completed successfully'
+      content:
+        application/json:
+          schema:
+            required:
+              - user_id
+            properties:
+              user_id:
+                type: string
+                description: "id пользователя user_name в чате chat_id, уникальный в рамках этого чата"
+
+    ChatSendMessageResponse:
+      description: 'action was completed successfully'
+      content:
+        application/json:
+          schema:
+            required:
+              - message_id
+            properties:
+              message_id:
+                type: string
+                description: "id сообщения в чате chat_id, уникальный в рамках этого чата"
+
+    ChatGetMessagesResponse:
+      description: 'action was completed successfully'
+      content:
+        application/json:
+          schema:
+            required:
+              - messages
+            properties:
+              messages:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Message'
+              next:
+                $ref: '#/components/schemas/Cursor'
+
+    GetHistoryResponse:
+      description: "Задача создана успешно"
+      content:
+        application/json:
+          schema:
+            required:
+              - task_id
+            properties:
+              task_id:
+                type: string
+                description: "Идентификатор созданной задачи"
+
+    GetTaskResponse:
+      description: "Получить статус задачи"
+      content:
+        application/json:
+          schema:
+            required:
+              - status
+            properties:
+              status:
+                type: string
+                description: "Статус задачи. Может принимать значения SUCCESS|IN_PROCESS|WAITING|FAILED"
+
+    HistoryGetMessagesResponse:
+      description: 'action was completed successfully'
+      content:
+        application/json:
+          schema:
+            required:
+              - messages
+            properties:
+              messages:
+                type: array
+                items:
+                  $ref: '#/components/schemas/HistoryMessage'
+              next:
+                $ref: '#/components/schemas/Cursor'
+  schemas:
+    Message:
+      properties:
+        text:
+          type: string
+
+    HistoryMessage:
+      properties:
+        text:
+          type: string
+        chat_id:
+          type: string
+
+    Cursor:
+      required:
+        - iterator
+      properties:
+        iterator:
+          type: string
