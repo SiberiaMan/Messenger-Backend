@@ -8,7 +8,7 @@
 - Searching messages in chats
 - **Individual messages** from "bot" in case if database is unavailable
 - Using the **cache** when the database is unavailable
-- Error handling
+- Errors handling
 
 
 To start messenger run ```docker-compose up```
